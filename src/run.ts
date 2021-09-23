@@ -22,10 +22,12 @@ async function getLineNumber(
 	line: Line | DiffLine | undefined,
 ): Promise<number | undefined> {
 	if (line instanceof DiffLine) {
+		// @ts-expect-error
+		console.log("Instnace of diffline", line._change)
 		if (line.removed) {
-			return line.lineNumberAfter!
-		} else {
 			return line.lineNumberBefore!
+		} else {
+			return line.lineNumberAfter!
 		}
 	} else if (line instanceof Line) {
 		return line.lineNumber
@@ -77,13 +79,18 @@ async function _run(rules: Rule<Messages, RuleMatchers>[]) {
 		try {
 			await rule.run(ruleValues)
 		} catch (error) {
-			error.message = `${error.message} (from rule ${rule.callsites[1].getFileName()})`
+			if (error instanceof Error) {
+				error.message = `${error.message} (from rule ${rule.callsites[1].getFileName()})`
+			}
 			throw error
 		}
 	}
 
 	for (let report of reports) {
+		console.log("Report", report)
 		let msg = formatReport(report)
+
+		console.log("Formatted report", msg)
 
 		let file: string | undefined
 		let line: number | undefined
@@ -92,6 +99,8 @@ async function _run(rules: Rule<Messages, RuleMatchers>[]) {
 			file = report.location.file.path
 			line = await getLineNumber(report.location.file, report.location.line)
 		}
+
+		console.log("File", file, "Line", line)
 
 		if (report.kind === "fail") {
 			fail(msg, file, line)
